@@ -1,7 +1,10 @@
 import type { FlickrPostsData, LensStats, PlacedPost } from "./types"
 import { buildSpatialIndex } from "./points-layer"
+import type { WorldSpace } from "./geo"
+import type { MapTileManager } from "./map-tiles"
 import {
   fitCamera,
+  LENS_MAGNIFICATION,
   LENS_RADIUS_DEFAULT,
   LENS_RADIUS_MAX,
   LENS_RADIUS_MIN,
@@ -111,6 +114,8 @@ export interface SceneElements {
   worldInner: HTMLElement
   magnifier: HTMLElement
   magnifierInner: HTMLElement
+  baseTiles: MapTileManager
+  magTiles: MapTileManager
 }
 
 export function runFlickrViz(
@@ -120,12 +125,13 @@ export function runFlickrViz(
   statsPanel: HTMLElement,
   lensSlider: HTMLInputElement,
   lensCountEl: HTMLDivElement,
+  world: WorldSpace,
   scene: SceneElements,
 ) {
   const yearCount = data.yearMax - data.yearMin + 1
   const spatialIndex = buildSpatialIndex(posts)
 
-  let camera: Camera = fitCamera(container.clientWidth, container.clientHeight)
+  let camera: Camera = fitCamera(world.width, world.height, container.clientWidth, container.clientHeight)
   let lensRadius = LENS_RADIUS_DEFAULT
   let isPanning = false
   let panStart = { x: 0, y: 0, panX: 0, panY: 0 }
@@ -149,6 +155,15 @@ export function runFlickrViz(
     syncMagnifierPosition(scene.magnifier, lensScreen, lensRadius)
     lensCountEl.style.left = `${lensScreen.x}px`
     lensCountEl.style.top = `${lensScreen.y - lensRadius - 30}px`
+
+    scene.baseTiles.update(camera, container.clientWidth, container.clientHeight)
+
+    const magCamera: Camera = {
+      zoom: camera.zoom * LENS_MAGNIFICATION,
+      panX: lensRadius - worldLens.x * camera.zoom * LENS_MAGNIFICATION,
+      panY: lensRadius - worldLens.y * camera.zoom * LENS_MAGNIFICATION,
+    }
+    scene.magTiles.update(magCamera, lensRadius * 2, lensRadius * 2)
   }
 
   function updateLens() {
@@ -214,7 +229,7 @@ export function runFlickrViz(
   }
 
   const onResize = () => {
-    camera = fitCamera(container.clientWidth, container.clientHeight)
+    camera = fitCamera(world.width, world.height, container.clientWidth, container.clientHeight)
     worldLens = screenToWorld(camera, lensScreen.x, lensScreen.y)
     syncAll()
     updateLens()

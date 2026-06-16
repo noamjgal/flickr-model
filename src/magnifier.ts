@@ -1,5 +1,3 @@
-import { WORLD_HEIGHT, WORLD_WIDTH } from "./geo"
-
 export const LENS_RADIUS_MIN = 50
 export const LENS_RADIUS_MAX = 240
 export const LENS_RADIUS_DEFAULT = 110
@@ -11,13 +9,18 @@ export interface Camera {
   zoom: number
 }
 
-export function fitCamera(containerWidth: number, containerHeight: number): Camera {
-  const scaleX = containerWidth / WORLD_WIDTH
-  const scaleY = containerHeight / WORLD_HEIGHT
+export function fitCamera(
+  worldWidth: number,
+  worldHeight: number,
+  containerWidth: number,
+  containerHeight: number,
+): Camera {
+  const scaleX = containerWidth / worldWidth
+  const scaleY = containerHeight / worldHeight
   const zoom = Math.min(scaleX, scaleY)
   return {
-    panX: (containerWidth - WORLD_WIDTH * zoom) / 2,
-    panY: (containerHeight - WORLD_HEIGHT * zoom) / 2,
+    panX: (containerWidth - worldWidth * zoom) / 2,
+    panY: (containerHeight - worldHeight * zoom) / 2,
     zoom,
   }
 }

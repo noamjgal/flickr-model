@@ -1,12 +1,12 @@
 import type { FlickrPostsData, PlacedPost } from "./types"
-import { project, WORLD_HEIGHT, WORLD_WIDTH } from "./geo"
+import { project, type WorldSpace } from "./geo"
 
 const STREET_COLOR = "#ff8b6aee"
 const AERIAL_COLOR = "#7ec8ffee"
 
-export function placePosts(data: FlickrPostsData): PlacedPost[] {
+export function placePosts(data: FlickrPostsData, world: WorldSpace): PlacedPost[] {
   return data.posts.map(([lon, lat, category, year, month]) => {
-    const { x, y } = project(lon, lat, data.bounds)
+    const { x, y } = project(lon, lat, world)
     return { x, y, lon, lat, street: category === 0, year, month }
   })
 }
@@ -22,11 +22,11 @@ export function buildSpatialIndex(posts: PlacedPost[], cellSize = 40): Map<strin
   return index
 }
 
-export function createPointsLayer(posts: PlacedPost[]): HTMLCanvasElement {
+export function createPointsLayer(posts: PlacedPost[], world: WorldSpace): HTMLCanvasElement {
   const canvas = document.createElement("canvas")
   canvas.className = "posts-layer"
-  canvas.width = WORLD_WIDTH
-  canvas.height = WORLD_HEIGHT
+  canvas.width = world.width
+  canvas.height = world.height
 
   const ctx = canvas.getContext("2d")!
   for (const post of posts) {

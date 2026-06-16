@@ -1,18 +1,53 @@
 import type { GeoBounds } from "./types"
 
-export const WORLD_WIDTH = 1400
-export const WORLD_HEIGHT = 1050
+export const TILE_SIZE = 256
+export const REF_ZOOM = 14
+export const MAP_PADDING = 0.25
 
-export function project(
-  lon: number,
-  lat: number,
-  bounds: GeoBounds,
-  width = WORLD_WIDTH,
-  height = WORLD_HEIGHT,
-): { x: number; y: number } {
-  const x = ((lon - bounds.minLon) / (bounds.maxLon - bounds.minLon)) * width
-  const y = (1 - (lat - bounds.minLat) / (bounds.maxLat - bounds.minLat)) * height
+export interface WorldSpace {
+  bounds: GeoBounds
+  width: number
+  height: number
+  originX: number
+  originY: number
+}
+
+export function lonLatToMercator(lon: number, lat: number, zoom: number): { x: number; y: number } {
+  const scale = TILE_SIZE * 2 ** zoom
+  const x = ((lon + 180) / 360) * scale
+  const latRad = (lat * Math.PI) / 180
+  const y =
+    ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * scale
   return { x, y }
+}
+
+export function paddedBounds(bounds: GeoBounds, padding = MAP_PADDING): GeoBounds {
+  const lonPad = (bounds.maxLon - bounds.minLon) * padding
+  const latPad = (bounds.maxLat - bounds.minLat) * padding
+  return {
+    minLon: bounds.minLon - lonPad,
+    maxLon: bounds.maxLon + lonPad,
+    minLat: bounds.minLat - latPad,
+    maxLat: bounds.maxLat + latPad,
+  }
+}
+
+export function createWorldSpace(dataBounds: GeoBounds): WorldSpace {
+  const bounds = paddedBounds(dataBounds)
+  const nw = lonLatToMercator(bounds.minLon, bounds.maxLat, REF_ZOOM)
+  const se = lonLatToMercator(bounds.maxLon, bounds.minLat, REF_ZOOM)
+  return {
+    bounds,
+    width: se.x - nw.x,
+    height: se.y - nw.y,
+    originX: nw.x,
+    originY: nw.y,
+  }
+}
+
+export function project(lon: number, lat: number, world: WorldSpace): { x: number; y: number } {
+  const m = lonLatToMercator(lon, lat, REF_ZOOM)
+  return { x: m.x - world.originX, y: m.y - world.originY }
 }
 
 export function lonToTileX(lon: number, zoom: number): number {
@@ -26,17 +61,42 @@ export function latToTileY(lat: number, zoom: number): number {
   )
 }
 
-export function tileYToLat(ty: number, zoom: number): number {
-  const n = Math.PI - (2 * Math.PI * ty) / 2 ** zoom
-  return (180 / Math.PI) * Math.atan(Math.sinh(n))
+export function tileWorldRect(
+  tx: number,
+  ty: number,
+  zoom: number,
+  world: WorldSpace,
+): { x: number; y: number; size: number } {
+  const scale = 2 ** (REF_ZOOM - zoom)
+  const x = tx * TILE_SIZE * scale - world.originX
+  const y = ty * TILE_SIZE * scale - world.originY
+  return { x, y, size: TILE_SIZE * scale }
 }
 
-export function tileBounds(tx: number, ty: number, zoom: number) {
-  const n = 2 ** zoom
+export function worldRectToTileRange(
+  minX: number,
+  minY: number,
+  maxX: number,
+  maxY: number,
+  zoom: number,
+  world: WorldSpace,
+) {
+  const scale = 2 ** (zoom - REF_ZOOM)
+  const toTile = (wx: number, wy: number) => ({
+    tx: Math.floor(((wx + world.originX) * scale) / TILE_SIZE),
+    ty: Math.floor(((wy + world.originY) * scale) / TILE_SIZE),
+  })
+  const nw = toTile(minX, minY)
+  const se = toTile(maxX, maxY)
   return {
-    lonW: (tx / n) * 360 - 180,
-    lonE: ((tx + 1) / n) * 360 - 180,
-    latN: tileYToLat(ty, zoom),
-    latS: tileYToLat(ty + 1, zoom),
+    minTx: nw.tx,
+    maxTx: se.tx,
+    minTy: nw.ty,
+    maxTy: se.ty,
   }
+}
+
+export function pickTileZoom(cameraZoom: number): number {
+  const z = Math.floor(REF_ZOOM + Math.log2(Math.max(cameraZoom, 0.25)))
+  return Math.max(10, Math.min(18, z))
 }
