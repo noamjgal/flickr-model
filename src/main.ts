@@ -78,7 +78,11 @@ async function main() {
 
   container.innerHTML = `<p class="loading">Loading posts…</p>`
 
-  const response = await fetch("/data/flickr-posts.json")
+  const dataUrl = `${import.meta.env.BASE_URL}data/flickr-posts.json`
+  const response = await fetch(dataUrl)
+  if (!response.ok) {
+    throw new Error(`Could not load data (${response.status}) from ${dataUrl}`)
+  }
   const data = (await response.json()) as FlickrPostsData
   container.innerHTML = `<p class="loading">Plotting ${data.totalPhotos.toLocaleString()} posts…</p>`
 
