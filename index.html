@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flickr NYC — VisQuill Lens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="viz-container"></div>
+    <div id="lens-count" class="lens-count"></div>
+    <aside id="controls" class="controls">
+      <label class="control">
+        <span class="control-label">Lens size</span>
+        <input type="range" id="lens-size" min="50" max="240" value="110" />
+      </label>
+      <p class="control-hint">Drag map to pan · Scroll to zoom · Move mouse to inspect</p>
+    </aside>
+    <aside id="stats-panel" class="stats-panel"></aside>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
