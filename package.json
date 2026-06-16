@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "preprocess": "python scripts/preprocess_data.py",
+    "preprocess": "python3 scripts/preprocess_data.py",
     "dev": "vite",
-    "build": "npm run preprocess && tsc && vite build",
+    "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
